@@ -1,0 +1,49 @@
+// Modification à apporter au fichier backend/controllers/emploiDuTempsController.js
+
+// Dans la fonction getEmploiDuTemps, modifiez la recherche d'emploi personnalisé comme suit :
+const emploiPersonnalise = await EmploiDuTemps.findOne({
+  $or: [
+    {
+      filiere: { $regex: new RegExp(`^${filiere}$`, 'i') },
+      annee: annee,
+      estPersonnalise: true,
+      pourTouteFiliere: true
+    },
+    {
+      filiere: 'tous',
+      annee: annee,
+      estPersonnalise: true,
+      pourTouteFiliere: true
+    },
+    {
+      filiere: { $regex: new RegExp(`^${filiere}$`, 'i') },
+      annee: 'tous',
+      estPersonnalise: true,
+      pourTouteFiliere: true
+    }
+  ]
+}).sort({ createdAt: -1 }); // Prendre le plus récent
+
+// Modification à apporter au fichier backend/controllers/emploiPersonnaliseController.js
+
+// Dans la fonction getEmploisPersonnalisesEtudiant, modifiez la recherche comme suit :
+const query = {
+  estPersonnalise: true,
+  $or: [
+    // Emplois spécifiquement assignés à cet étudiant
+    { etudiants: studentId },
+
+    // Emplois pour toute la filière de l'étudiant
+    {
+      pourTouteFiliere: true,
+      $or: [
+        { filiere: { $regex: new RegExp(`^${student.filiere}$`, 'i') } },
+        { filiere: 'tous' }
+      ],
+      $or: [
+        { annee: student.annee },
+        { annee: 'tous' }
+      ]
+    }
+  ]
+};

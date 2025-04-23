@@ -1,0 +1,114 @@
+// Modification à apporter au fichier backend/controllers/emploiPersonnaliseController.js
+
+// @desc    Récupérer les emplois du temps personnalisés d'un étudiant
+// @route   GET /api/emplois-personnalises/etudiant/:id
+// @access  Private
+const getEmploisPersonnalisesEtudiant = async (req, res) => {
+  try {
+    const studentId = req.params.id || req.student._id;
+    console.log('Récupération des emplois pour l\'étudiant ID:', studentId);
+
+    // Récupérer les informations de l'étudiant pour connaître sa filière et son année
+    const student = await Student.findById(studentId);
+
+    if (!student) {
+      console.log('Étudiant non trouvé avec ID:', studentId);
+      return res.status(404).json({ message: 'Étudiant non trouvé' });
+    }
+
+    console.log('Informations étudiant:', {
+      id: student._id,
+      nom: student.nom,
+      prenom: student.prenom,
+      filiere: student.filiere,
+      annee: student.annee
+    });
+
+    // Construire la requête pour trouver les emplois du temps qui correspondent à cet étudiant
+    // Utiliser une expression régulière pour ignorer la casse lors de la comparaison des filières
+    const filiereRegex = new RegExp(`^${student.filiere}$`, 'i');
+    
+    const query = {
+      estPersonnalise: true,
+      $or: [
+        // Emplois spécifiquement assignés à cet étudiant
+        { etudiants: studentId },
+
+        // Emplois pour toute la filière de l'étudiant
+        {
+          pourTouteFiliere: true,
+          $or: [
+            { filiere: filiereRegex },
+            { filiere: 'tous' }
+          ],
+          $or: [
+            { annee: student.annee },
+            { annee: 'tous' }
+          ]
+        }
+      ]
+    };
+
+    console.log('Requête de recherche:', JSON.stringify(query, null, 2));
+
+    // Vérifier tous les emplois du temps personnalisés pour déboguer
+    const allEmplois = await EmploiDuTemps.find({ estPersonnalise: true });
+    console.log('Nombre total d\'emplois personnalisés:', allEmplois.length);
+
+    // Afficher les détails de chaque emploi pour déboguer
+    allEmplois.forEach((emploi, index) => {
+      console.log(`Emploi #${index + 1}:`, {
+        id: emploi._id,
+        titre: emploi.titre,
+        filiere: emploi.filiere,
+        annee: emploi.annee,
+        pourTouteFiliere: emploi.pourTouteFiliere,
+        etudiants: emploi.etudiants
+      });
+    });
+
+    // Recherche manuelle pour déboguer
+    const emploisPersonnalises = [];
+    
+    for (const emploi of allEmplois) {
+      // Vérifier si l'emploi est spécifiquement assigné à cet étudiant
+      const isAssignedToStudent = emploi.etudiants.some(
+        etudiantId => etudiantId.toString() === studentId.toString()
+      );
+      
+      // Vérifier si l'emploi est pour toute la filière de l'étudiant
+      const isForStudentFiliere = 
+        emploi.pourTouteFiliere && 
+        (emploi.filiere.toLowerCase() === student.filiere.toLowerCase() || emploi.filiere === 'tous') &&
+        (emploi.annee === student.annee || emploi.annee === 'tous');
+      
+      if (isAssignedToStudent || isForStudentFiliere) {
+        emploisPersonnalises.push(emploi);
+        console.log(`Emploi #${emploi._id} ajouté pour l'étudiant:`, {
+          titre: emploi.titre,
+          filiere: emploi.filiere,
+          annee: emploi.annee,
+          pourTouteFiliere: emploi.pourTouteFiliere,
+          isAssignedToStudent,
+          isForStudentFiliere
+        });
+      }
+    }
+    
+    // Peupler les références
+    await EmploiDuTemps.populate(emploisPersonnalises, {
+      path: 'creePar',
+      select: 'nom prenom'
+    });
+    
+    // Trier par date de création décroissante
+    emploisPersonnalises.sort((a, b) => b.createdAt - a.createdAt);
+
+    console.log('Nombre d\'emplois trouvés pour cet étudiant:', emploisPersonnalises.length);
+
+    res.json(emploisPersonnalises);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des emplois:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

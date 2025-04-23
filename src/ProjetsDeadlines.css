@@ -1,0 +1,137 @@
+.projets-deadlines-container {
+    padding: 2rem;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9fafb;
+    min-height: 100vh;
+  }
+
+  h2 {
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+
+  .projets-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    background-color: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .projets-table th,
+  .projets-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .projets-table th {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+
+  .projets-table tr:hover {
+    background-color: #f0f4ff;
+  }
+
+  .statut {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-block;
+    text-align: center;
+    min-width: 100px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .statut:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .statut.encours {
+    background-color: #fef08a; /* Jaune vif */
+    color: #854d0e; /* Marron foncé */
+    border: 1px solid #facc15;
+  }
+
+  .statut.afaire {
+    background-color: #fee2e2; /* Rouge clair */
+    color: #b91c1c; /* Rouge foncé */
+    border: 1px solid #fca5a5;
+  }
+
+  .statut.termine {
+    background-color: #d1fae5; /* Vert clair */
+    color: #047857; /* Vert foncé */
+    border: 1px solid #6ee7b7;
+  }
+
+  .statut.prevu {
+    background-color: #e0e7ff; /* Bleu-violet clair */
+    color: #4338ca; /* Bleu-violet foncé */
+    border: 1px solid #a5b4fc;
+  }
+
+  /* Styles pour le bouton de rafraîchissement */
+  .refresh-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .refresh-btn:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .refresh-btn:active {
+    transform: translateY(0);
+  }
+
+  .refresh-btn svg {
+    font-size: 1rem;
+  }
+
+  .refresh-icon {
+    transition: transform 0.5s ease;
+  }
+
+  .refreshing .refresh-icon {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }

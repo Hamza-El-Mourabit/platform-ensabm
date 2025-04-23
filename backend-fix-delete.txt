@@ -1,0 +1,43 @@
+// Modification à apporter au fichier backend/controllers/emploiPersonnaliseController.js
+
+// @desc    Supprimer un emploi du temps personnalisé
+// @route   DELETE /api/emplois-personnalises/:id
+// @access  Private (Admin only)
+const deleteEmploiPersonnalise = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Tentative de suppression de l'emploi du temps avec ID: ${id}`);
+
+    // Vérifier si l'emploi du temps existe
+    const emploiDuTemps = await EmploiDuTemps.findById(id);
+    
+    if (!emploiDuTemps) {
+      console.log(`Emploi du temps avec ID ${id} non trouvé`);
+      return res.status(404).json({ message: 'Emploi du temps personnalisé non trouvé' });
+    }
+
+    // Vérifier si l'utilisateur est autorisé à supprimer cet emploi du temps
+    // (si c'est un admin, il est autorisé)
+    if (req.admin) {
+      console.log(`Admin ${req.admin._id} autorisé à supprimer l'emploi du temps`);
+    } else {
+      console.log(`Utilisateur non autorisé à supprimer l'emploi du temps`);
+      return res.status(401).json({ message: 'Non autorisé' });
+    }
+
+    // Supprimer l'emploi du temps
+    const result = await EmploiDuTemps.deleteOne({ _id: id });
+    console.log(`Résultat de la suppression:`, result);
+
+    if (result.deletedCount === 0) {
+      console.log(`Échec de la suppression de l'emploi du temps avec ID ${id}`);
+      return res.status(500).json({ message: 'Échec de la suppression' });
+    }
+
+    console.log(`Emploi du temps avec ID ${id} supprimé avec succès`);
+    res.json({ message: 'Emploi du temps personnalisé supprimé avec succès' });
+  } catch (error) {
+    console.error(`Erreur lors de la suppression de l'emploi du temps:`, error);
+    res.status(500).json({ message: error.message });
+  }
+};

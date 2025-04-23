@@ -1,0 +1,269 @@
+.emplois-personnalises-container {
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.buttons-container {
+  display: flex;
+  gap: 1rem;
+}
+
+.return-btn, .back-btn, .refresh-btn {
+  padding: 0.5rem 1rem;
+  background-color: #4b5563;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.refresh-btn {
+  background-color: #10b981; /* Couleur verte pour le bouton de rafraîchissement */
+  font-weight: bold;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-btn:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn {
+  background-color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.info-message {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #0ea5e9;
+}
+
+/* Styles pour la liste des emplois */
+.emplois-list {
+  margin-top: 1rem;
+}
+
+.no-emplois {
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.emplois-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.emploi-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.emploi-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.emploi-card h3 {
+  margin-top: 0;
+  color: #1e40af;
+  font-size: 1.2rem;
+}
+
+.emploi-description {
+  color: #6b7280;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.emploi-type {
+  margin-top: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.filiere-badge {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.personal-badge {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.emploi-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+/* Styles pour les détails d'un emploi */
+.emploi-details {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.emploi-header {
+  margin-bottom: 2rem;
+}
+
+.emploi-header h3 {
+  margin: 0.5rem 0;
+  color: #1e40af;
+  font-size: 1.5rem;
+}
+
+.emploi-type-detail {
+  margin: 0.5rem 0;
+}
+
+.emploi-meta {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+/* Styles pour la grille d'emploi du temps */
+.emplois-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.jour-column {
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.jour-column h3 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #374151;
+  font-size: 1.1rem;
+}
+
+.cours-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cours-card {
+  background-color: white;
+  border-radius: 6px;
+  padding: 0.8rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.cours-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #1e40af;
+}
+
+.cours-time, .cours-location, .cours-prof {
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
+.cours-time {
+  font-weight: bold;
+  color: #4b5563;
+}
+
+.cours-location {
+  color: #6b7280;
+}
+
+.cours-prof {
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .emplois-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .emplois-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .buttons-container {
+    width: 100%;
+  }
+
+  .emploi-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .emplois-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .emplois-cards {
+    grid-template-columns: 1fr;
+  }
+}
