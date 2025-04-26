@@ -16,7 +16,51 @@ exports.getProjets = async (req, res) => {
       return res.status(404).json({ message: 'Aucun projet trouvé pour cette filière et année' });
     }
 
-    res.json(projets);
+    // Importer les modèles nécessaires
+    const Module = require('../models/Module');
+    const Professor = require('../models/Professor');
+
+    // Créer une copie des projets pour ne pas modifier l'original
+    const projetsWithNames = JSON.parse(JSON.stringify(projets));
+
+    // Pour chaque projet, récupérer les noms des modules et des professeurs
+    for (let i = 0; i < projetsWithNames.projets.length; i++) {
+      const projet = projetsWithNames.projets[i];
+
+      // Récupérer le nom du module
+      if (projet.module && projet.module.length === 24 && /^[0-9a-fA-F]{24}$/.test(projet.module)) {
+        try {
+          const moduleDoc = await Module.findById(projet.module);
+          if (moduleDoc) {
+            projetsWithNames.projets[i].module = {
+              _id: projet.module,
+              nom: `${moduleDoc.code} - ${moduleDoc.nom}`
+            };
+          }
+        } catch (err) {
+          console.error('Erreur lors de la récupération du module:', err);
+        }
+      }
+
+      // Récupérer le nom du professeur
+      if (projet.professeur && projet.professeur.length === 24 && /^[0-9a-fA-F]{24}$/.test(projet.professeur)) {
+        try {
+          const professorDoc = await Professor.findById(projet.professeur);
+          if (professorDoc) {
+            projetsWithNames.projets[i].professeur = {
+              _id: projet.professeur,
+              nom: professorDoc.nom,
+              prenom: professorDoc.prenom
+            };
+          }
+        } catch (err) {
+          console.error('Erreur lors de la récupération du professeur:', err);
+        }
+      }
+    }
+
+    console.log('Projets avec noms récupérés:', projetsWithNames.projets.length);
+    res.json(projetsWithNames);
   } catch (error) {
     console.error('Erreur lors de la récupération des projets:', error);
     res.status(500).json({ message: error.message });

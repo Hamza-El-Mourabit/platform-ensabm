@@ -51,6 +51,15 @@ const studentSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Middleware pour normaliser la casse de la filière avant la sauvegarde
+studentSchema.pre('save', function(next) {
+  if (this.filiere) {
+    // Convertir la filière en minuscules
+    this.filiere = this.filiere.toLowerCase();
+  }
+  next();
+});
+
 // Méthode pour comparer les mots de passe
 studentSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);

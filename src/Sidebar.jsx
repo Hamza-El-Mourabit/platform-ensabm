@@ -4,11 +4,10 @@ import {
   BsColumnsGap,
   BsFileEarmarkSpreadsheetFill,
   BsFillGrid3X3GapFill,
-  BsCalendar2PlusFill,
   BsFillRocketFill
 } from 'react-icons/bs';
 import { IoClose } from "react-icons/io5";
-import { FaCalendarAlt } from "react-icons/fa";
+import { FaCalendarAlt, FaGraduationCap } from "react-icons/fa";
 import './Sidebar.css';
 
 function Sidebar({ openSidebarToggle, OpenSidebar }) {
@@ -17,14 +16,15 @@ function Sidebar({ openSidebarToggle, OpenSidebar }) {
 
   // Liste des routes pour vérifier l'élément actif
   const menuItems = [
+    { path: '/', icon: <BsColumnsGap className="icon" />, label: 'Tableau de bord' },
     { path: '/EmploisDuTemps', icon: <FaCalendarAlt className="icon" />, label: 'Emplois du temps' },
     { path: '/PlanningExams', icon: <BsFileEarmarkSpreadsheetFill className="icon" />, label: 'Planning des exams' },
     { path: '/Evenement', icon: <BsFillGrid3X3GapFill className="icon" />, label: 'Évènements' },
-    { path: '/EmploisPersonnalises', icon: <BsCalendar2PlusFill className="icon" />, label: 'Emplois personnalisés' },
+    { path: '/FormationsInscrites', icon: <FaGraduationCap className="icon" />, label: 'Formations inscrites' },
     { path: '/ProjetsDeadlines', icon: <BsFillRocketFill className="icon" />, label: 'Projets & deadlines' },
   ];
 
-  // Si l'utilisateur est sur la page d'accueil, marquer le premier élément comme actif
+  // Vérifier si l'utilisateur est sur la page d'accueil (dashboard)
   const isHomePage = currentPath === '/' || currentPath === '';
 
   return (
@@ -42,7 +42,7 @@ function Sidebar({ openSidebarToggle, OpenSidebar }) {
       <nav className="sidebar-nav">
         <ul>
           {menuItems.map((item, index) => (
-            <li key={index} className={(currentPath === item.path || (isHomePage && index === 0)) ? 'active' : ''}>
+            <li key={index} className={currentPath.toLowerCase() === item.path.toLowerCase() ? 'active' : ''}>
               <Link to={item.path}>
                 {item.icon}
                 <span>{item.label}</span>

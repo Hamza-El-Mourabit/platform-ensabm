@@ -112,6 +112,27 @@ const ProjetsDeadlines = () => {
     }
   };
 
+  // Fonction pour générer la classe CSS correcte pour chaque statut
+  const getStatutClass = (statut) => {
+    if (!statut) return '';
+
+    // Normalisation du statut pour le CSS
+    const statutLower = statut.toLowerCase();
+
+    if (statutLower === 'à faire' || statutLower === 'a faire') {
+      return 'afaire';
+    } else if (statutLower === 'en cours') {
+      return 'encours';
+    } else if (statutLower === 'terminé' || statutLower === 'termine') {
+      return 'termine';
+    } else if (statutLower === 'prévu' || statutLower === 'prevu') {
+      return 'prevu';
+    }
+
+    // Fallback: retourner une version simplifiée du statut
+    return statut.replace(/\s/g, '').replace(/[àáâãäåçèéêëìíîïñòóôõöùúûüýÿ]/g, '').toLowerCase();
+  };
+
   return (
     <div className="projets-deadlines-container">
       <div className="header-actions">
@@ -169,15 +190,17 @@ const ProjetsDeadlines = () => {
             </div>
           ) : projets && projets.projets ? (
             <div>
-              <div className="refresh-container">
-                <button
-                  className={`refresh-btn ${refreshing ? 'refreshing' : ''}`}
-                  onClick={handleRefresh}
-                  title="Rafraîchir les projets"
-                  disabled={refreshing}
-                >
-                  <FaSync className="refresh-icon" /> Rafraîchir
-                </button>
+              <div className="projets-header">
+                <div className="refresh-container">
+                  <button
+                    className={`refresh-btn ${refreshing ? 'refreshing' : ''}`}
+                    onClick={handleRefresh}
+                    title="Rafraîchir les projets"
+                    disabled={refreshing}
+                  >
+                    <FaSync className="refresh-icon" /> Rafraîchir
+                  </button>
+                </div>
               </div>
               <table className="projets-table">
               <thead>
@@ -199,7 +222,7 @@ const ProjetsDeadlines = () => {
                     <td>{formatDate(projet.deadline)}</td>
                     <td>{typeof projet.professeur === 'object' ? `${projet.professeur.nom} ${projet.professeur.prenom}` : projet.professeur}</td>
                     <td>
-                      <span className={`statut ${projet.statut.replace(/\s/g, '').replace(/[\u00C0-\u00FF]/g, '').toLowerCase()}`}>
+                      <span className={`statut ${getStatutClass(projet.statut)}`}>
                         {projet.statut}
                       </span>
                     </td>

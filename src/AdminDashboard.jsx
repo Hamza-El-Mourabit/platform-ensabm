@@ -7,17 +7,23 @@ import {
   faSignOutAlt, faCalendarAlt, faPlus, faEye, faTrash,
   faEdit, faTimes, faExclamationTriangle, faUserGraduate,
   faChalkboardTeacher, faBuilding, faBook, faInfoCircle,
-  faTasks, faClock
+  faTasks, faClock, faGraduationCap, faSyncAlt, faBroom,
+  faSearch, faChartLine
 } from '@fortawesome/free-solid-svg-icons';
+import GestionFormations from './GestionFormations';
+import GestionCompetences from './GestionCompetences';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('emplois');
+  const [formations, setFormations] = useState([]);
   const [emploisPersonnalises, setEmploisPersonnalises] = useState([]);
   const [etudiants, setEtudiants] = useState([]);
   const [professors, setProfessors] = useState([]);
   const [modules, setModules] = useState([]);
   const [projets, setProjets] = useState([]);
+  const [examens, setExamens] = useState([]);
+  const [evenements, setEvenements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [adminData, setAdminData] = useState(null);
@@ -89,6 +95,48 @@ const AdminDashboard = () => {
   });
   const [selectedProjetItemIndex, setSelectedProjetItemIndex] = useState(-1);
 
+  // États pour la gestion des examens
+  const [selectedExamen, setSelectedExamen] = useState(null);
+  const [showExamenForm, setShowExamenForm] = useState(false);
+  const [examenFormMode, setExamenFormMode] = useState('add'); // 'add' ou 'edit'
+  const [syncingExams, setSyncingExams] = useState(false); // État pour suivre la synchronisation des examens
+  const [examenFormData, setExamenFormData] = useState({
+    titre: '',
+    description: '',
+    date: '',
+    heureDebut: '',
+    heureFin: '',
+    salle: '',
+    filiere: '',
+    annee: '',
+    module: '',
+    professeur: '',
+    type: 'Contrôle Continu',
+    pourTouteFiliere: true,
+    etudiants: []
+  });
+
+  // États pour la gestion des événements
+  const [selectedEvenement, setSelectedEvenement] = useState(null);
+  const [showEvenementForm, setShowEvenementForm] = useState(false);
+  const [evenementFormMode, setEvenementFormMode] = useState('add'); // 'add' ou 'edit'
+  const [evenementFormData, setEvenementFormData] = useState({
+    titre: '',
+    description: '',
+    dateDebut: '',
+    heureDebut: '',
+    dateFin: '',
+    heureFin: '',
+    lieu: '',
+    type: 'Conférence',
+    organisateur: '',
+    image: '',
+    filiere: '',
+    annee: '',
+    pourTouteFiliere: true,
+    etudiants: []
+  });
+
   // État pour le formulaire de création/modification d'emploi personnalisé
   const [formData, setFormData] = useState({
     titre: '',
@@ -145,7 +193,7 @@ const AdminDashboard = () => {
     fetchEtudiants();
   }, [navigate]);
 
-  // Charger les étudiants, professeurs, modules et projets lorsque l'onglet est sélectionné
+  // Charger les étudiants, professeurs, modules, projets, examens, événements et formations lorsque l'onglet est sélectionné
   useEffect(() => {
     if (activeTab === 'etudiants') {
       fetchEtudiants();
@@ -157,6 +205,15 @@ const AdminDashboard = () => {
       fetchProjets();
       fetchModules();
       fetchProfessors();
+    } else if (activeTab === 'examens') {
+      fetchExamens();
+      fetchModules();
+      fetchProfessors();
+      fetchEtudiants(); // Assurons-nous que les étudiants sont chargés
+    } else if (activeTab === 'evenements') {
+      fetchEvenements();
+    } else if (activeTab === 'formations') {
+      fetchFormations();
     } else if (activeTab === 'creer') {
       // Charger les professeurs et les modules pour le formulaire de création d'emploi du temps
       fetchProfessors();
@@ -1093,6 +1150,389 @@ const AdminDashboard = () => {
     }
   };
 
+  // Récupérer les examens
+  const fetchExamens = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/examens/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (fetchExamens):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+        throw new Error('Format de réponse invalide');
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la récupération des examens: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('Examens récupérés:', data);
+      setExamens(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la récupération des examens: ' + err.message);
+      setExamens([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Synchroniser tous les examens avec les plannings
+  const synchronizeAllExams = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir synchroniser tous les examens avec les plannings des étudiants? Cette opération peut prendre un moment.')) {
+      return;
+    }
+
+    try {
+      setSyncingExams(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/examens/sync-all', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (synchronizeAllExams):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la synchronisation des examens: ${response.status} ${response.statusText}`);
+      }
+
+      alert('Tous les examens ont été synchronisés avec succès avec les plannings des étudiants!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la synchronisation des examens: ' + err.message);
+      alert('Erreur lors de la synchronisation des examens: ' + err.message);
+    } finally {
+      setSyncingExams(false);
+    }
+  };
+
+  // Nettoyer les plannings d'examens (supprimer les doublons)
+  const cleanupPlanningExams = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir nettoyer les plannings d\'examens pour supprimer les doublons?')) {
+      return;
+    }
+
+    try {
+      setSyncingExams(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/examens/cleanup-plannings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (cleanupPlanningExams):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors du nettoyage des plannings: ${response.status} ${response.statusText}`);
+      }
+
+      const duplicatesRemoved = data?.details?.duplicatesRemoved || 0;
+      alert(`Nettoyage terminé avec succès! ${duplicatesRemoved} doublons ont été supprimés.`);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors du nettoyage des plannings: ' + err.message);
+      alert('Erreur lors du nettoyage des plannings: ' + err.message);
+    } finally {
+      setSyncingExams(false);
+    }
+  };
+
+  // Supprimer les examens orphelins
+  const removeOrphanExams = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer les examens qui n\'ont pas été créés par l\'administrateur (comme l\'examen "Gestion de projet")?')) {
+      return;
+    }
+
+    try {
+      setSyncingExams(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/examens/remove-orphans', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (removeOrphanExams):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la suppression des examens orphelins: ${response.status} ${response.statusText}`);
+      }
+
+      const orphansRemoved = data?.details?.totalOrphansRemoved || 0;
+      const specificExamRemoved = data?.details?.specificExamRemoved || false;
+
+      let message = `Suppression terminée avec succès! ${orphansRemoved} examens orphelins ont été supprimés.`;
+      if (specificExamRemoved) {
+        message += '\nL\'examen "Gestion de projet" a été supprimé avec succès.';
+      }
+
+      alert(message);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la suppression des examens orphelins: ' + err.message);
+      alert('Erreur lors de la suppression des examens orphelins: ' + err.message);
+    } finally {
+      setSyncingExams(false);
+    }
+  };
+
+  // Comparer les examens entre les collections
+  const compareExams = async () => {
+    try {
+      setSyncingExams(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/examens/compare', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (compareExams):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la comparaison des examens: ${response.status} ${response.statusText}`);
+      }
+
+      const totalExamens = data?.details?.totalExamens || 0;
+      const totalPlanningExams = data?.details?.totalPlanningExams || 0;
+      const difference = data?.details?.difference || 0;
+
+      let message = `Comparaison terminée:\n`;
+      message += `- Examens dans la collection Examen: ${totalExamens}\n`;
+      message += `- Examens dans les plannings: ${totalPlanningExams}\n`;
+      message += `- Différence: ${difference}\n\n`;
+
+      // Ajouter les détails par filière/année
+      if (data?.details?.comparison) {
+        message += `Détails par filière/année:\n`;
+        for (const [key, value] of Object.entries(data.details.comparison)) {
+          if (value.difference !== 0) {
+            message += `- ${key}: ${value.examen} examens vs ${value.planning} dans le planning (diff: ${value.difference})\n`;
+          }
+        }
+      }
+
+      alert(message);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la comparaison des examens: ' + err.message);
+      alert('Erreur lors de la comparaison des examens: ' + err.message);
+    } finally {
+      setSyncingExams(false);
+    }
+  };
+
+  // Forcer une resynchronisation complète
+  const forceResync = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir forcer une resynchronisation complète des examens? Cette opération va supprimer tous les plannings existants et les recréer.')) {
+      return;
+    }
+
+    try {
+      setSyncingExams(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/examens/force-resync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (forceResync):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la resynchronisation forcée: ${response.status} ${response.statusText}`);
+      }
+
+      const total = data?.details?.total || 0;
+      const totalExams = data?.details?.totalExams || 0;
+      const duplicatesRemoved = data?.details?.duplicatesRemoved || 0;
+
+      let message = `Resynchronisation forcée terminée avec succès!\n`;
+      message += `- ${total} examens dans la collection Examen\n`;
+      message += `- ${totalExams} examens ajoutés aux plannings\n`;
+      message += `- ${duplicatesRemoved} doublons supprimés\n`;
+
+      alert(message);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la resynchronisation forcée: ' + err.message);
+      alert('Erreur lors de la resynchronisation forcée: ' + err.message);
+    } finally {
+      setSyncingExams(false);
+    }
+  };
+
+  // Récupérer les événements
+  const fetchEvenements = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/evenements/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (fetchEvenements):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+        throw new Error('Format de réponse invalide');
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la récupération des événements: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('Événements récupérés:', data);
+      setEvenements(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la récupération des événements: ' + err.message);
+      setEvenements([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fonction pour récupérer les formations
+  const fetchFormations = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch('http://localhost:5000/api/formations', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (fetchFormations):', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+        throw new Error('Format de réponse invalide');
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la récupération des formations: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('Formations récupérées:', data);
+      setFormations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError('Erreur lors de la récupération des formations: ' + err.message);
+      setFormations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Ajouter un nouveau projet
   const addProjet = async () => {
     try {
@@ -1277,6 +1717,620 @@ const AdminDashboard = () => {
     }
   };
 
+
+
+
+
+  // Ajouter un nouvel examen
+  const addExamen = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      // Formater les données pour l'API
+      const formattedData = {
+        ...examenFormData,
+        date: new Date(examenFormData.date).toISOString()
+      };
+
+      console.log('Données envoyées au serveur pour création d\'examen:', formattedData);
+
+      const response = await fetch('http://localhost:5000/api/examens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formattedData)
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la création de l'examen: ${response.status} ${response.statusText}`);
+      }
+
+      // Réinitialiser le formulaire
+      setExamenFormData({
+        titre: '',
+        description: '',
+        date: '',
+        heureDebut: '',
+        heureFin: '',
+        salle: '',
+        filiere: '',
+        annee: '',
+        module: '',
+        professeur: '',
+        type: 'Contrôle Continu',
+        pourTouteFiliere: true,
+        etudiants: []
+      });
+
+      // Fermer le formulaire
+      setShowExamenForm(false);
+
+      // Rafraîchir la liste des examens
+      fetchExamens();
+
+      alert('Examen créé avec succès!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mettre à jour un examen existant
+  const updateExamen = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      // Formater les données pour l'API
+      const formattedData = {
+        ...examenFormData,
+        date: new Date(examenFormData.date).toISOString()
+      };
+
+      console.log('Données envoyées au serveur pour mise à jour d\'examen:', formattedData);
+
+      const response = await fetch(`http://localhost:5000/api/examens/${selectedExamen._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formattedData)
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la mise à jour de l'examen: ${response.status} ${response.statusText}`);
+      }
+
+      // Réinitialiser le formulaire
+      setExamenFormData({
+        titre: '',
+        description: '',
+        date: '',
+        heureDebut: '',
+        heureFin: '',
+        salle: '',
+        filiere: '',
+        annee: '',
+        module: '',
+        professeur: '',
+        type: 'Contrôle Continu',
+        pourTouteFiliere: true,
+        etudiants: []
+      });
+
+      // Fermer le formulaire
+      setShowExamenForm(false);
+      setSelectedExamen(null);
+
+      // Rafraîchir la liste des examens
+      fetchExamens();
+
+      alert('Examen mis à jour avec succès!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Supprimer un examen
+  const deleteExamen = async (id) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet examen?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch(`http://localhost:5000/api/examens/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la suppression de l'examen: ${response.status} ${response.statusText}`);
+      }
+
+      // Rafraîchir la liste des examens
+      fetchExamens();
+
+      alert('Examen supprimé avec succès!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ouvrir le formulaire d'ajout d'examen
+  const openAddExamenForm = () => {
+    // S'assurer que les étudiants sont chargés
+    if (etudiants.length === 0) {
+      fetchEtudiants();
+    }
+
+    setExamenFormData({
+      titre: '',
+      description: '',
+      date: '',
+      heureDebut: '',
+      heureFin: '',
+      salle: '',
+      filiere: '',
+      annee: '',
+      module: '',
+      professeur: '',
+      type: 'Contrôle Continu',
+      pourTouteFiliere: true,
+      etudiants: []
+    });
+    setExamenFormMode('add');
+    setShowExamenForm(true);
+  };
+
+  // Ouvrir le formulaire de modification d'examen
+  const openEditExamenForm = (examen) => {
+    // S'assurer que les étudiants sont chargés
+    if (etudiants.length === 0) {
+      fetchEtudiants();
+    }
+
+    setSelectedExamen(examen);
+    setExamenFormData({
+      titre: examen.titre,
+      description: examen.description || '',
+      date: new Date(examen.date).toISOString().split('T')[0],
+      heureDebut: examen.heureDebut,
+      heureFin: examen.heureFin,
+      salle: examen.salle,
+      filiere: examen.filiere,
+      annee: examen.annee,
+      module: examen.module,
+      professeur: examen.professeur,
+      type: examen.type,
+      pourTouteFiliere: examen.pourTouteFiliere,
+      etudiants: examen.etudiants || []
+    });
+    setExamenFormMode('edit');
+    setShowExamenForm(true);
+  };
+
+  // Gérer les changements dans le formulaire examen
+  const handleExamenFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (name === 'etudiants' && type === 'select-multiple') {
+      // Gérer les étudiants comme une liste multiple
+      const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+      console.log('Étudiants sélectionnés:', selectedOptions);
+      setExamenFormData({
+        ...examenFormData,
+        etudiants: selectedOptions
+      });
+    } else if (name === 'pourTouteFiliere' && type === 'checkbox') {
+      // Si on change l'option "Pour tous les étudiants", on met à jour le formulaire
+      console.log('Option "Pour tous les étudiants" changée:', checked);
+      setExamenFormData({
+        ...examenFormData,
+        pourTouteFiliere: checked,
+        // Si on coche l'option, on vide la liste des étudiants spécifiques
+        etudiants: checked ? [] : examenFormData.etudiants
+      });
+
+      // Si on décoche l'option, on vérifie que les étudiants sont bien chargés
+      if (!checked) {
+        console.log('Étudiants disponibles:', etudiants.length);
+        console.log('Filière sélectionnée:', examenFormData.filiere);
+        console.log('Année sélectionnée:', examenFormData.annee);
+
+        // Filtrer les étudiants selon la filière et l'année
+        const etudiantsFiltres = etudiants.filter(etudiant =>
+          (examenFormData.filiere === 'tous' || etudiant.filiere.toLowerCase() === examenFormData.filiere.toLowerCase()) &&
+          (examenFormData.annee === 'tous' || String(etudiant.annee) === String(examenFormData.annee))
+        );
+        console.log('Étudiants filtrés:', etudiantsFiltres.length);
+      }
+    } else if (name === 'filiere' || name === 'annee') {
+      // Si la filière ou l'année change, mettre à jour le formulaire
+      setExamenFormData({
+        ...examenFormData,
+        [name]: value,
+        // Si on change la filière ou l'année, on vide la liste des étudiants spécifiques
+        etudiants: examenFormData.pourTouteFiliere ? [] : examenFormData.etudiants
+      });
+
+      // Si on a décoché l'option "Pour tous les étudiants", on vérifie que les étudiants sont bien chargés
+      if (!examenFormData.pourTouteFiliere) {
+        console.log(`${name} changée à ${value}`);
+        console.log('Étudiants disponibles:', etudiants.length);
+
+        // Si on n'a pas encore chargé les étudiants, on les charge
+        if (etudiants.length === 0) {
+          fetchEtudiants();
+        }
+      }
+    } else {
+      setExamenFormData({
+        ...examenFormData,
+        [name]: type === 'checkbox' ? checked : value
+      });
+    }
+  };
+
+  // Soumettre le formulaire examen
+  const handleExamenFormSubmit = (e) => {
+    e.preventDefault();
+    if (examenFormMode === 'add') {
+      addExamen();
+    } else {
+      updateExamen();
+    }
+  };
+
+  // Ajouter un nouvel événement
+  const addEvenement = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      // Formater les données pour l'API
+      // Combiner la date et l'heure pour dateDebut et dateFin
+      const dateDebutCombinee = `${evenementFormData.dateDebut}T${evenementFormData.heureDebut || '00:00'}:00`;
+      const dateFinCombinee = `${evenementFormData.dateFin}T${evenementFormData.heureFin || '00:00'}:00`;
+
+      const formattedData = {
+        ...evenementFormData,
+        dateDebut: new Date(dateDebutCombinee).toISOString(),
+        dateFin: new Date(dateFinCombinee).toISOString()
+      };
+
+      console.log('Données envoyées au serveur pour création d\'événement:', formattedData);
+
+      const response = await fetch('http://localhost:5000/api/evenements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formattedData)
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la création de l'événement: ${response.status} ${response.statusText}`);
+      }
+
+      // Réinitialiser le formulaire
+      setEvenementFormData({
+        titre: '',
+        description: '',
+        dateDebut: '',
+        heureDebut: '',
+        dateFin: '',
+        heureFin: '',
+        lieu: '',
+        type: 'Conférence',
+        organisateur: '',
+        image: '',
+        filiere: '',
+        annee: '',
+        pourTouteFiliere: true,
+        etudiants: []
+      });
+
+      // Fermer le formulaire
+      setShowEvenementForm(false);
+
+      // Rafraîchir la liste des événements
+      fetchEvenements();
+
+      alert('Événement créé avec succès!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mettre à jour un événement existant
+  const updateEvenement = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      // Formater les données pour l'API
+      // Combiner la date et l'heure pour dateDebut et dateFin
+      const dateDebutCombinee = `${evenementFormData.dateDebut}T${evenementFormData.heureDebut || '00:00'}:00`;
+      const dateFinCombinee = `${evenementFormData.dateFin}T${evenementFormData.heureFin || '00:00'}:00`;
+
+      const formattedData = {
+        ...evenementFormData,
+        dateDebut: new Date(dateDebutCombinee).toISOString(),
+        dateFin: new Date(dateFinCombinee).toISOString()
+      };
+
+      console.log('Données envoyées au serveur pour mise à jour d\'événement:', formattedData);
+
+      const response = await fetch(`http://localhost:5000/api/evenements/${selectedEvenement._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formattedData)
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la mise à jour de l'événement: ${response.status} ${response.statusText}`);
+      }
+
+      // Réinitialiser le formulaire
+      setEvenementFormData({
+        titre: '',
+        description: '',
+        dateDebut: '',
+        heureDebut: '',
+        dateFin: '',
+        heureFin: '',
+        lieu: '',
+        type: 'Conférence',
+        organisateur: '',
+        image: '',
+        filiere: '',
+        annee: '',
+        pourTouteFiliere: true,
+        etudiants: []
+      });
+
+      // Fermer le formulaire
+      setShowEvenementForm(false);
+      setSelectedEvenement(null);
+
+      // Rafraîchir la liste des événements
+      fetchEvenements();
+
+      alert('Événement mis à jour avec succès!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Supprimer un événement
+  const deleteEvenement = async (id) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet événement?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const token = localStorage.getItem('adminToken');
+
+      const response = await fetch(`http://localhost:5000/api/evenements/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Récupérer le texte brut de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+
+      // Essayer de parser la réponse en JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Erreur lors de la suppression de l'événement: ${response.status} ${response.statusText}`);
+      }
+
+      // Rafraîchir la liste des événements
+      fetchEvenements();
+
+      alert('Événement supprimé avec succès!');
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ouvrir le formulaire d'ajout d'événement
+  const openAddEvenementForm = () => {
+    setEvenementFormData({
+      titre: '',
+      description: '',
+      dateDebut: '',
+      heureDebut: '',
+      dateFin: '',
+      heureFin: '',
+      lieu: '',
+      type: 'Conférence',
+      organisateur: '',
+      image: '',
+      filiere: '',
+      annee: '',
+      pourTouteFiliere: true,
+      etudiants: []
+    });
+    setEvenementFormMode('add');
+    setShowEvenementForm(true);
+  };
+
+  // Ouvrir le formulaire de modification d'événement
+  const openEditEvenementForm = (evenement) => {
+    setSelectedEvenement(evenement);
+
+    // Extraire la date et l'heure de début
+    const dateDebutObj = new Date(evenement.dateDebut);
+    const dateDebut = dateDebutObj.toISOString().split('T')[0];
+    const heureDebut = dateDebutObj.toTimeString().substring(0, 5);
+
+    // Extraire la date et l'heure de fin
+    const dateFinObj = new Date(evenement.dateFin);
+    const dateFin = dateFinObj.toISOString().split('T')[0];
+    const heureFin = dateFinObj.toTimeString().substring(0, 5);
+
+    setEvenementFormData({
+      titre: evenement.titre,
+      description: evenement.description || '',
+      dateDebut: dateDebut,
+      heureDebut: heureDebut,
+      dateFin: dateFin,
+      heureFin: heureFin,
+      lieu: evenement.lieu,
+      type: evenement.type,
+      organisateur: evenement.organisateur,
+      image: evenement.image || '',
+      filiere: evenement.filiere,
+      annee: evenement.annee,
+      pourTouteFiliere: evenement.pourTouteFiliere,
+      etudiants: evenement.etudiants || []
+    });
+    setEvenementFormMode('edit');
+    setShowEvenementForm(true);
+  };
+
+  // Gérer les changements dans le formulaire événement
+  const handleEvenementFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (name === 'etudiants' && type === 'select-multiple') {
+      // Gérer les étudiants comme une liste multiple
+      const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+      setEvenementFormData({
+        ...evenementFormData,
+        etudiants: selectedOptions
+      });
+    } else {
+      setEvenementFormData({
+        ...evenementFormData,
+        [name]: type === 'checkbox' ? checked : value
+      });
+    }
+  };
+
+  // Soumettre le formulaire événement
+  const handleEvenementFormSubmit = (e) => {
+    e.preventDefault();
+    if (evenementFormMode === 'add') {
+      addEvenement();
+    } else {
+      updateEvenement();
+    }
+  };
+
   // Ouvrir le formulaire d'ajout de projet
   const openAddProjetForm = () => {
     setProjetFormData({
@@ -1413,6 +2467,7 @@ const AdminDashboard = () => {
       }
 
       const emploiData = await response.json();
+      console.log('Données de l\'emploi du temps récupérées:', emploiData);
       setSelectedEmploi(emploiData);
 
       // Préparer les données pour le formulaire
@@ -1421,11 +2476,23 @@ const AdminDashboard = () => {
       const emploisComplets = jours.map(jour => {
         const jourExistant = emploiData.emplois.find(e => e.jour === jour);
         if (jourExistant) {
-          return jourExistant;
+          // Traiter les créneaux pour s'assurer que les modules et professeurs sont correctement formatés
+          const creneauxFormattes = jourExistant.creneaux.map(creneau => {
+            return {
+              ...creneau,
+              // Extraire l'ID du module si c'est un objet, sinon utiliser la valeur directement
+              module: typeof creneau.module === 'object' && creneau.module !== null ? creneau.module._id : creneau.module,
+              // Extraire l'ID du professeur si c'est un objet, sinon utiliser la valeur directement
+              professeur: typeof creneau.professeur === 'object' && creneau.professeur !== null ? creneau.professeur._id : creneau.professeur
+            };
+          });
+          return { ...jourExistant, creneaux: creneauxFormattes };
         } else {
           return { jour, creneaux: [] };
         }
       });
+
+      console.log('Emplois complets formatés:', emploisComplets);
 
       // Mettre à jour le formulaire avec les données de l'emploi du temps
       setFormData({
@@ -1569,6 +2636,34 @@ const AdminDashboard = () => {
           <FontAwesomeIcon icon={faTasks} style={{ marginRight: '8px' }} />
           Gestion des projets
         </button>
+        <button
+          className={activeTab === 'examens' ? 'active' : ''}
+          onClick={() => setActiveTab('examens')}
+        >
+          <FontAwesomeIcon icon={faBook} style={{ marginRight: '8px' }} />
+          Gestion des examens
+        </button>
+        <button
+          className={activeTab === 'evenements' ? 'active' : ''}
+          onClick={() => setActiveTab('evenements')}
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
+          Gestion des événements
+        </button>
+        <button
+          className={activeTab === 'formations' ? 'active' : ''}
+          onClick={() => setActiveTab('formations')}
+        >
+          <FontAwesomeIcon icon={faGraduationCap} style={{ marginRight: '8px' }} />
+          Gestion des formations
+        </button>
+        <button
+          className={activeTab === 'competences' ? 'active' : ''}
+          onClick={() => setActiveTab('competences')}
+        >
+          <FontAwesomeIcon icon={faChartLine} style={{ marginRight: '8px' }} />
+          Gestion des compétences
+        </button>
       </div>
 
       {/* Statistiques */}
@@ -1628,7 +2723,7 @@ const AdminDashboard = () => {
             <FontAwesomeIcon icon={faBook} />
           </div>
           <div className="admin-stat-content">
-            <h3 className="admin-stat-value">12</h3>
+            <h3 className="admin-stat-value">{examens.length}</h3>
             <p className="admin-stat-label">Examens</p>
           </div>
         </div>
@@ -1640,6 +2735,16 @@ const AdminDashboard = () => {
           <div className="admin-stat-content">
             <h3 className="admin-stat-value">{projets.length}</h3>
             <p className="admin-stat-label">Projets</p>
+          </div>
+        </div>
+
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon formations">
+            <FontAwesomeIcon icon={faGraduationCap} />
+          </div>
+          <div className="admin-stat-content">
+            <h3 className="admin-stat-value">{formations.length}</h3>
+            <p className="admin-stat-label">Formations</p>
           </div>
         </div>
       </div>
@@ -2835,6 +3940,668 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'examens' && (
+          <div className="manage-examens">
+            <div className="header-actions">
+              <h2>Gestion des examens</h2>
+              <div className="action-buttons">
+                <div className="sync-buttons">
+                  <button
+                    className="sync-btn"
+                    onClick={synchronizeAllExams}
+                    disabled={loading || syncingExams}
+                    title="Synchroniser tous les examens avec les plannings des étudiants"
+                  >
+                    <FontAwesomeIcon icon={faSyncAlt} spin={syncingExams} />
+                    {syncingExams ? 'Synchronisation en cours...' : 'Synchroniser avec les plannings'}
+                  </button>
+                  <button
+                    className="cleanup-btn"
+                    onClick={cleanupPlanningExams}
+                    disabled={loading || syncingExams}
+                    title="Nettoyer les doublons dans les plannings"
+                  >
+                    <FontAwesomeIcon icon={faBroom} spin={syncingExams} />
+                    {syncingExams ? 'Nettoyage en cours...' : 'Nettoyer les doublons'}
+                  </button>
+                  <button
+                    className="remove-orphans-btn"
+                    onClick={removeOrphanExams}
+                    disabled={loading || syncingExams}
+                    title="Supprimer les examens qui n'ont pas été créés par l'administrateur"
+                  >
+                    <FontAwesomeIcon icon={faTrash} spin={syncingExams} />
+                    {syncingExams ? 'Suppression en cours...' : 'Supprimer examens non admin'}
+                  </button>
+                  <button
+                    className="compare-btn"
+                    onClick={compareExams}
+                    disabled={loading || syncingExams}
+                    title="Comparer les examens entre les collections"
+                  >
+                    <FontAwesomeIcon icon={faSearch} spin={syncingExams} />
+                    {syncingExams ? 'Comparaison en cours...' : 'Comparer les examens'}
+                  </button>
+                  <button
+                    className="force-resync-btn"
+                    onClick={forceResync}
+                    disabled={loading || syncingExams}
+                    title="Forcer une resynchronisation complète (méthode alternative)"
+                  >
+                    <FontAwesomeIcon icon={faExclamationTriangle} spin={syncingExams} />
+                    {syncingExams ? 'Resynchronisation en cours...' : 'Forcer resynchronisation'}
+                  </button>
+                </div>
+                <button
+                  className="add-btn"
+                  onClick={openAddExamenForm}
+                  disabled={loading}
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Ajouter un examen
+                </button>
+              </div>
+            </div>
+
+            {showExamenForm ? (
+              <div className="examen-form-container">
+                <h3>{examenFormMode === 'add' ? 'Ajouter un examen' : 'Modifier un examen'}</h3>
+                <form onSubmit={handleExamenFormSubmit} className="examen-form">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Titre:</label>
+                      <input
+                        type="text"
+                        name="titre"
+                        value={examenFormData.titre}
+                        onChange={handleExamenFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Type:</label>
+                      <select
+                        name="type"
+                        value={examenFormData.type}
+                        onChange={handleExamenFormChange}
+                        required
+                      >
+                        <option value="Contrôle Continu">Contrôle Continu</option>
+                        <option value="Examen Final">Examen Final</option>
+                        <option value="Rattrapage">Rattrapage</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Description:</label>
+                    <textarea
+                      name="description"
+                      value={examenFormData.description}
+                      onChange={handleExamenFormChange}
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Date:</label>
+                      <input
+                        type="date"
+                        name="date"
+                        value={examenFormData.date}
+                        onChange={handleExamenFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Heure de début:</label>
+                      <input
+                        type="time"
+                        name="heureDebut"
+                        value={examenFormData.heureDebut}
+                        onChange={handleExamenFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Heure de fin:</label>
+                      <input
+                        type="time"
+                        name="heureFin"
+                        value={examenFormData.heureFin}
+                        onChange={handleExamenFormChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Salle:</label>
+                      <input
+                        type="text"
+                        name="salle"
+                        value={examenFormData.salle}
+                        onChange={handleExamenFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Module:</label>
+                      <select
+                        name="module"
+                        value={examenFormData.module}
+                        onChange={handleExamenFormChange}
+                        required
+                      >
+                        <option value="">-- Sélectionner un module --</option>
+                        {modules.map(module => (
+                          <option key={module._id} value={module._id}>
+                            {module.code} - {module.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Professeur:</label>
+                      <select
+                        name="professeur"
+                        value={examenFormData.professeur}
+                        onChange={handleExamenFormChange}
+                        required
+                      >
+                        <option value="">-- Sélectionner un professeur --</option>
+                        {professors.map(professor => (
+                          <option key={professor._id} value={professor._id}>
+                            {professor.nom} {professor.prenom} ({professor.specialite})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Filière:</label>
+                      <select
+                        name="filiere"
+                        value={examenFormData.filiere}
+                        onChange={handleExamenFormChange}
+                        required
+                      >
+                        <option value="">-- Sélectionner une filière --</option>
+                        <option value="iacs">IACS</option>
+                        <option value="aa">AA</option>
+                        <option value="g2er">G2ER</option>
+                        <option value="tdi">TDI</option>
+                        <option value="tous">Tous</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Année:</label>
+                      <select
+                        name="annee"
+                        value={examenFormData.annee}
+                        onChange={handleExamenFormChange}
+                        required
+                      >
+                        <option value="">-- Sélectionner une année --</option>
+                        <option value="1">1ère année</option>
+                        <option value="2">2ème année</option>
+                        <option value="3">3ème année</option>
+                        <option value="tous">Tous</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="pourTouteFiliere"
+                        checked={examenFormData.pourTouteFiliere}
+                        onChange={handleExamenFormChange}
+                      />
+                      Pour tous les étudiants de cette filière et année
+                    </label>
+                  </div>
+
+                  {!examenFormData.pourTouteFiliere && (
+                    <div className="form-group">
+                      <label>Étudiants spécifiques:</label>
+                      {etudiants.length === 0 ? (
+                        <div className="alert alert-warning">
+                          Chargement des étudiants... Si cette alerte persiste, veuillez rafraîchir la page.
+                        </div>
+                      ) : (
+                        <>
+                          <select
+                            name="etudiants"
+                            value={examenFormData.etudiants}
+                            onChange={handleExamenFormChange}
+                            multiple
+                            size="5"
+                            style={{ width: '100%', minHeight: '150px' }}
+                          >
+                            {etudiants
+                              .filter(etudiant =>
+                                (examenFormData.filiere === 'tous' || etudiant.filiere.toLowerCase() === examenFormData.filiere.toLowerCase()) &&
+                                (examenFormData.annee === 'tous' || String(etudiant.annee) === String(examenFormData.annee))
+                              )
+                              .map(etudiant => (
+                                <option key={etudiant._id} value={etudiant._id}>
+                                  {etudiant.nom} {etudiant.prenom} ({etudiant.filiere.toUpperCase()} - {etudiant.annee}ème année)
+                                </option>
+                              ))
+                            }
+                          </select>
+                          <small>Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs étudiants</small>
+                          <div style={{ marginTop: '5px', fontSize: '0.9em', color: '#666' }}>
+                            {examenFormData.filiere && examenFormData.annee ?
+                              `${etudiants.filter(etudiant =>
+                                (examenFormData.filiere === 'tous' || etudiant.filiere.toLowerCase() === examenFormData.filiere.toLowerCase()) &&
+                                (examenFormData.annee === 'tous' || String(etudiant.annee) === String(examenFormData.annee))
+                              ).length} étudiants disponibles` :
+                              'Veuillez sélectionner une filière et une année pour voir les étudiants disponibles'
+                            }
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={() => {
+                        setShowExamenForm(false);
+                        setSelectedExamen(null);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      className="submit-btn"
+                      disabled={loading}
+                    >
+                      <FontAwesomeIcon icon={examenFormMode === 'add' ? faPlus : faEdit} />
+                      {loading ? 'Traitement en cours...' : (examenFormMode === 'add' ? 'Ajouter' : 'Mettre à jour')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div className="examens-list">
+                {loading && <p>Chargement...</p>}
+
+                {!loading && examens.length === 0 ? (
+                  <p>Aucun examen trouvé.</p>
+                ) : (
+                  <table className="examens-table">
+                    <thead>
+                      <tr>
+                        <th>Titre</th>
+                        <th>Date</th>
+                        <th>Heure</th>
+                        <th>Salle</th>
+                        <th>Module</th>
+                        <th>Filière</th>
+                        <th>Année</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {examens.map(examen => (
+                        <tr key={examen._id}>
+                          <td>{examen.titre}</td>
+                          <td>{new Date(examen.date).toLocaleDateString()}</td>
+                          <td>{examen.heureDebut} - {examen.heureFin}</td>
+                          <td>{examen.salle}</td>
+                          <td>{examen.module}</td>
+                          <td>{examen.filiere === 'tous' ? 'Tous' : examen.filiere.toUpperCase()}</td>
+                          <td>{examen.annee === 'tous' ? 'Tous' : `${examen.annee}ème année`}</td>
+                          <td>{examen.type}</td>
+                          <td>
+                            <button
+                              className="edit-btn"
+                              onClick={() => openEditExamenForm(examen)}
+                            >
+                              <FontAwesomeIcon icon={faEdit} /> Modifier
+                            </button>
+                            <button
+                              className="delete-btn"
+                              onClick={() => deleteExamen(examen._id)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Supprimer
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'evenements' && (
+          <div className="manage-evenements">
+            <div className="header-actions">
+              <h2>Gestion des événements</h2>
+              <button
+                className="add-btn"
+                onClick={openAddEvenementForm}
+                disabled={loading}
+              >
+                <FontAwesomeIcon icon={faPlus} /> Ajouter un événement
+              </button>
+            </div>
+
+            {showEvenementForm ? (
+              <div className="evenement-form-container">
+                <h3>{evenementFormMode === 'add' ? 'Ajouter un événement' : 'Modifier un événement'}</h3>
+                <form onSubmit={handleEvenementFormSubmit} className="evenement-form">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Titre:</label>
+                      <input
+                        type="text"
+                        name="titre"
+                        value={evenementFormData.titre}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Type:</label>
+                      <select
+                        name="type"
+                        value={evenementFormData.type}
+                        onChange={handleEvenementFormChange}
+                        required
+                      >
+                        <option value="Conférence">Conférence</option>
+                        <option value="Atelier">Atelier</option>
+                        <option value="Séminaire">Séminaire</option>
+                        <option value="Compétition">Compétition</option>
+                        <option value="Autre">Autre</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Description:</label>
+                    <textarea
+                      name="description"
+                      value={evenementFormData.description}
+                      onChange={handleEvenementFormChange}
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Date de début:</label>
+                      <input
+                        type="date"
+                        name="dateDebut"
+                        value={evenementFormData.dateDebut}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Heure de début:</label>
+                      <input
+                        type="time"
+                        name="heureDebut"
+                        value={evenementFormData.heureDebut}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Date de fin:</label>
+                      <input
+                        type="date"
+                        name="dateFin"
+                        value={evenementFormData.dateFin}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Heure de fin:</label>
+                      <input
+                        type="time"
+                        name="heureFin"
+                        value={evenementFormData.heureFin}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Lieu:</label>
+                      <input
+                        type="text"
+                        name="lieu"
+                        value={evenementFormData.lieu}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Organisateur:</label>
+                      <input
+                        type="text"
+                        name="organisateur"
+                        value={evenementFormData.organisateur}
+                        onChange={handleEvenementFormChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Image (URL):</label>
+                    <input
+                      type="text"
+                      name="image"
+                      value={evenementFormData.image}
+                      onChange={handleEvenementFormChange}
+                      placeholder="URL de l'image (optionnel)"
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Filière:</label>
+                      <select
+                        name="filiere"
+                        value={evenementFormData.filiere}
+                        onChange={handleEvenementFormChange}
+                        required
+                      >
+                        <option value="">-- Sélectionner une filière --</option>
+                        <option value="iacs">IACS</option>
+                        <option value="aa">AA</option>
+                        <option value="g2er">G2ER</option>
+                        <option value="tdi">TDI</option>
+                        <option value="tous">Tous</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Année:</label>
+                      <select
+                        name="annee"
+                        value={evenementFormData.annee}
+                        onChange={handleEvenementFormChange}
+                        required
+                      >
+                        <option value="">-- Sélectionner une année --</option>
+                        <option value="1">1ère année</option>
+                        <option value="2">2ème année</option>
+                        <option value="3">3ème année</option>
+                        <option value="tous">Tous</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="pourTouteFiliere"
+                        checked={evenementFormData.pourTouteFiliere}
+                        onChange={handleEvenementFormChange}
+                      />
+                      Pour tous les étudiants de cette filière et année
+                    </label>
+                  </div>
+
+                  {!evenementFormData.pourTouteFiliere && (
+                    <div className="form-group">
+                      <label>Étudiants spécifiques:</label>
+                      <select
+                        name="etudiants"
+                        value={evenementFormData.etudiants}
+                        onChange={handleEvenementFormChange}
+                        multiple
+                        size="5"
+                      >
+                        {etudiants
+                          .filter(etudiant =>
+                            (evenementFormData.filiere === 'tous' || etudiant.filiere.toLowerCase() === evenementFormData.filiere.toLowerCase()) &&
+                            (evenementFormData.annee === 'tous' || String(etudiant.annee) === String(evenementFormData.annee))
+                          )
+                          .map(etudiant => (
+                            <option key={etudiant._id} value={etudiant._id}>
+                              {etudiant.nom} {etudiant.prenom} ({etudiant.filiere} - {etudiant.annee})
+                            </option>
+                          ))
+                        }
+                      </select>
+                      <small>Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs étudiants</small>
+                    </div>
+                  )}
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={() => {
+                        setShowEvenementForm(false);
+                        setSelectedEvenement(null);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      className="submit-btn"
+                      disabled={loading}
+                    >
+                      <FontAwesomeIcon icon={evenementFormMode === 'add' ? faPlus : faEdit} />
+                      {loading ? 'Traitement en cours...' : (evenementFormMode === 'add' ? 'Ajouter' : 'Mettre à jour')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div className="evenements-list">
+                {loading && <p>Chargement...</p>}
+
+                {!loading && evenements.length === 0 ? (
+                  <p>Aucun événement trouvé.</p>
+                ) : (
+                  <table className="evenements-table">
+                    <thead>
+                      <tr>
+                        <th>Titre</th>
+                        <th>Date de début</th>
+                        <th>Date de fin</th>
+                        <th>Lieu</th>
+                        <th>Type</th>
+                        <th>Filière</th>
+                        <th>Année</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {evenements.map(evenement => (
+                        <tr key={evenement._id}>
+                          <td>{evenement.titre}</td>
+                          <td>
+                            {new Date(evenement.dateDebut).toLocaleDateString()}
+                            {' '}
+                            {new Date(evenement.dateDebut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td>
+                            {new Date(evenement.dateFin).toLocaleDateString()}
+                            {' '}
+                            {new Date(evenement.dateFin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td>{evenement.lieu}</td>
+                          <td>{evenement.type}</td>
+                          <td>{evenement.filiere === 'tous' ? 'Tous' : evenement.filiere.toUpperCase()}</td>
+                          <td>{evenement.annee === 'tous' ? 'Tous' : `${evenement.annee}ème année`}</td>
+                          <td>
+                            <button
+                              className="edit-btn"
+                              onClick={() => openEditEvenementForm(evenement)}
+                            >
+                              <FontAwesomeIcon icon={faEdit} /> Modifier
+                            </button>
+                            <button
+                              className="delete-btn"
+                              onClick={() => deleteEvenement(evenement._id)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Supprimer
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'formations' && (
+          <div className="manage-formations">
+            <GestionFormations />
+          </div>
+        )}
+
+        {activeTab === 'competences' && (
+          <div className="manage-competences">
+            <GestionCompetences />
           </div>
         )}
       </div>

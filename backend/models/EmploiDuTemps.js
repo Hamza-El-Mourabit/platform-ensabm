@@ -13,6 +13,12 @@ const emploiDuTempsSchema = new mongoose.Schema({
     trim: true,
     enum: ['1', '2', '3', 'tous'] // Ajouter l'option 'tous' pour les emplois concernant toutes les années
   },
+  semaine: {
+    type: Number,
+    default: 1, // Par défaut, semaine 1
+    min: 1,
+    max: 52 // Maximum 52 semaines dans une année
+  },
   estPersonnalise: {
     type: Boolean,
     default: false

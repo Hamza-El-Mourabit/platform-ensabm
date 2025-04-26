@@ -1,7 +1,124 @@
+/* Animations */
+@keyframes slowZoom {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Animation classes */
+.animate-fadeIn {
+    animation: fadeIn 1s ease forwards;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
 @media(max-width: 900px){
     .login-left{
         display: none;
-    }   
+    }
+}
+
+@media(max-width: 768px){
+    /* Ajustements pour la navigation */
+    nav {
+        flex-direction: column !important;
+        padding: 15px !important;
+    }
+
+    nav > div:first-child {
+        margin-bottom: 15px;
+    }
+
+    nav ul {
+        flex-direction: column !important;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    nav ul li {
+        margin: 8px 0 !important;
+        width: 100%;
+        text-align: center;
+    }
+
+    nav ul li a {
+        display: block;
+        padding: 8px 0 !important;
+    }
+
+    /* Ajustements pour les services */
+    [style*="servicesGrid"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Ajustements pour les formations */
+    [style*="formationsContainer"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Ajustements pour la section directeur */
+    [style*="directeurSection"] > div {
+        flex-direction: column !important;
+        text-align: center !important;
+    }
+
+    [style*="directeurSection"] img {
+        margin-right: 0 !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* Ajustements pour le footer */
+    footer > div:first-child {
+        flex-direction: column !important;
+    }
+
+    footer > div:first-child > div {
+        text-align: center !important;
+    }
 }
 
 @media(max-width: 370px){
@@ -22,5 +139,4 @@
     .login-center p{
         font-size: 1.5rem;
     }
-
 }

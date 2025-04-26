@@ -7,8 +7,9 @@ const getEmploiDuTemps = async (req, res) => {
   try {
     const { filiere, annee } = req.params;
     const apogee = req.query.apogee; // Récupérer le numéro apogée de l'étudiant s'il est fourni
+    const semaine = req.query.semaine ? parseInt(req.query.semaine) : null; // Récupérer la semaine si elle est fournie
 
-    console.log(`Recherche d'emploi du temps pour filière: ${filiere}, année: ${annee}, apogée: ${apogee || 'non fourni'}`);
+    console.log(`Recherche d'emploi du temps pour filière: ${filiere}, année: ${annee}, semaine: ${semaine || 'toutes'}, apogée: ${apogee || 'non fourni'}`);
 
     // Vérifier d'abord s'il existe un emploi du temps personnalisé pour cette filière et année
     // qui est marqué comme étant pour toute la filière
@@ -65,13 +66,21 @@ const getEmploiDuTemps = async (req, res) => {
     }
 
     // Si aucun emploi personnalisé n'est trouvé, chercher l'emploi standard
-    console.log(`Aucun emploi personnalisé trouvé, recherche d'emploi standard pour filière: ${filiere}, année: ${annee}`);
+    console.log(`Aucun emploi personnalisé trouvé, recherche d'emploi standard pour filière: ${filiere}, année: ${annee}, semaine: ${semaine || 'toutes'}`);
 
-    const emploiDuTemps = await EmploiDuTemps.findOne({
+    // Construire la requête de base
+    const query = {
       filiere: { $regex: new RegExp(`^${filiere}$`, 'i') },
       annee: annee,
       estPersonnalise: { $ne: true } // Exclure les emplois personnalisés
-    })
+    };
+
+    // Ajouter la semaine à la requête si elle est spécifiée
+    if (semaine) {
+      query.semaine = semaine;
+    }
+
+    const emploiDuTemps = await EmploiDuTemps.findOne(query)
     .populate([
       {
         path: 'emplois.creneaux.professeur',
@@ -103,25 +112,33 @@ const getEmploiDuTemps = async (req, res) => {
 // @access  Private (Admin only)
 const createEmploiDuTemps = async (req, res) => {
   try {
-    const { filiere, annee, emplois } = req.body;
+    const { filiere, annee, semaine, emplois } = req.body;
 
-    console.log(`Tentative de création d'un emploi du temps pour filière: ${filiere}, année: ${annee}`);
+    console.log(`Tentative de création d'un emploi du temps pour filière: ${filiere}, année: ${annee}, semaine: ${semaine || 1}`);
 
-    // Vérifier si l'emploi du temps existe déjà
-    const emploiDuTempsExists = await EmploiDuTemps.findOne({
+    // Vérifier si l'emploi du temps existe déjà pour cette semaine
+    const query = {
       filiere: { $regex: new RegExp(`^${filiere}$`, 'i') },
       annee,
       estPersonnalise: { $ne: true } // Exclure les emplois personnalisés
-    });
+    };
+
+    // Ajouter la semaine à la requête si elle est spécifiée
+    if (semaine) {
+      query.semaine = semaine;
+    }
+
+    const emploiDuTempsExists = await EmploiDuTemps.findOne(query);
 
     if (emploiDuTempsExists) {
-      console.log(`Un emploi du temps existe déjà pour filière: ${filiere}, année: ${annee}`);
-      return res.status(400).json({ message: 'Emploi du temps déjà existant' });
+      console.log(`Un emploi du temps existe déjà pour filière: ${filiere}, année: ${annee}, semaine: ${semaine || 1}`);
+      return res.status(400).json({ message: 'Emploi du temps déjà existant pour cette semaine' });
     }
 
     const emploiDuTemps = await EmploiDuTemps.create({
       filiere,
       annee,
+      semaine: semaine || 1, // Utiliser la semaine spécifiée ou 1 par défaut
       emplois
     });
 
@@ -156,8 +173,37 @@ const updateEmploiDuTemps = async (req, res) => {
   }
 };
 
+// @desc    Get available weeks for a filiere and annee
+// @route   GET /api/emplois-du-temps/:filiere/:annee/semaines
+// @access  Private
+const getSemainesDisponibles = async (req, res) => {
+  try {
+    const { filiere, annee } = req.params;
+
+    console.log(`Recherche des semaines disponibles pour filière: ${filiere}, année: ${annee}`);
+
+    // Récupérer toutes les semaines disponibles pour cette filière et année
+    const semaines = await EmploiDuTemps.find({
+      filiere: { $regex: new RegExp(`^${filiere}$`, 'i') },
+      annee,
+      estPersonnalise: { $ne: true } // Exclure les emplois personnalisés
+    }).distinct('semaine');
+
+    // Trier les semaines par ordre croissant
+    semaines.sort((a, b) => a - b);
+
+    console.log(`Semaines disponibles pour filière: ${filiere}, année: ${annee}:`, semaines);
+
+    res.json(semaines);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des semaines disponibles:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getEmploiDuTemps,
   createEmploiDuTemps,
-  updateEmploiDuTemps
+  updateEmploiDuTemps,
+  getSemainesDisponibles
 };

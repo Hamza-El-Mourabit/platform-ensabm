@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +15,8 @@ import {
   Filler
 } from 'chart.js';
 import { Bar, Pie, Line, Radar } from 'react-chartjs-2';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import './Dashboard.css';
 
 // Enregistrer les composants Chart.js
@@ -32,6 +35,7 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -52,6 +56,11 @@ const Dashboard = () => {
     examens: {
       prochains: 0,
       passes: 0
+    },
+    evenements: {
+      total: 0,
+      aVenir: 0,
+      prochain: null
     }
   });
 
@@ -66,30 +75,71 @@ const Dashboard = () => {
     fetchStatistics();
   }, []);
 
+  // Fonction pour formater les dates
+  const formatDate = (date) => {
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  // Fonction pour formater les dates relatives (il y a X jours, heures, etc.)
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+      if (diffHours === 0) {
+        const diffMinutes = Math.floor(diffTime / (1000 * 60));
+        return `Il y a ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+      }
+      return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+    } else if (diffDays === 1) {
+      return 'Hier';
+    } else if (diffDays < 7) {
+      return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+    } else if (diffDays < 30) {
+      const diffWeeks = Math.floor(diffDays / 7);
+      return `Il y a ${diffWeeks} semaine${diffWeeks > 1 ? 's' : ''}`;
+    } else {
+      return formatDate(date);
+    }
+  };
+
   // Fonction pour récupérer les statistiques
   const fetchStatistics = async () => {
     try {
+      console.log('Début de la récupération des statistiques');
       setLoading(true);
 
       // Récupérer le token d'authentification
       const token = localStorage.getItem('userToken');
+      console.log('Token récupéré:', token ? 'Oui' : 'Non');
+
       if (!token) {
         throw new Error('Vous devez être connecté pour accéder à ces informations');
       }
 
       // Faire un appel API pour récupérer les statistiques réelles
+      console.log('Envoi de la requête API...');
       const response = await fetch('http://localhost:5000/api/statistics', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+      console.log('Réponse reçue, statut:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Erreur de réponse:', errorData);
         throw new Error(errorData.message || 'Erreur lors de la récupération des statistiques');
       }
 
       const statsData = await response.json();
+      console.log('Données reçues:', statsData);
       setStats(statsData);
       setLoading(false);
     } catch (err) {
@@ -101,8 +151,8 @@ const Dashboard = () => {
       const fallbackStats = {
         etudiants: {
           total: 0,
-          parFiliere: {},
-          parAnnee: {}
+          parFiliere: { 'iacs': 0, 'aa': 0, 'g2er': 0, 'tdi': 0 },
+          parAnnee: { '1': 0, '2': 0, '3': 0 }
         },
         emplois: {
           total: 0,
@@ -110,12 +160,31 @@ const Dashboard = () => {
         },
         projets: {
           total: 0,
-          parStatut: {}
+          parStatut: { 'en cours': 0, 'termine': 0, 'a venir': 0 },
+          aSoumettreCetteSemaine: 0,
+          prochain: null
         },
         examens: {
+          total: 0,
           prochains: 0,
-          passes: 0
-        }
+          passes: 0,
+          prochain: null,
+          joursJusquAuProchainExamen: 0
+        },
+        evenements: {
+          total: 0,
+          aVenir: 0,
+          prochain: null
+        },
+        competences: {
+          programmation: 75,
+          mathematiques: 75,
+          communication: 75,
+          travailEquipe: 75,
+          resolutionProblemes: 75,
+          gestionProjet: 75
+        },
+        activitesRecentes: []
       };
 
       setStats(fallbackStats);
@@ -124,11 +193,14 @@ const Dashboard = () => {
 
   // Données pour le graphique des étudiants par filière
   const etudiantsParFiliereData = {
-    labels: Object.keys(stats.etudiants.parFiliere).map(filiere => filiere.toUpperCase()),
+    labels: Object.keys(stats?.etudiants?.parFiliere || {}).map(filiere => {
+      // Convertir la première lettre en majuscule et le reste en minuscules
+      return filiere.charAt(0).toUpperCase() + filiere.slice(1).toLowerCase();
+    }),
     datasets: [
       {
         label: 'Nombre d\'étudiants',
-        data: Object.values(stats.etudiants.parFiliere),
+        data: Object.values(stats?.etudiants?.parFiliere || {}),
         backgroundColor: [
           'rgba(54, 162, 235, 0.6)',
           'rgba(255, 99, 132, 0.6)',
@@ -148,11 +220,11 @@ const Dashboard = () => {
 
   // Données pour le graphique des étudiants par année
   const etudiantsParAnneeData = {
-    labels: Object.keys(stats.etudiants.parAnnee).map(annee => `${annee}ère/ème année`),
+    labels: Object.keys(stats?.etudiants?.parAnnee || {}).map(annee => `${annee}ère/ème année`),
     datasets: [
       {
         label: 'Nombre d\'étudiants',
-        data: Object.values(stats.etudiants.parAnnee),
+        data: Object.values(stats?.etudiants?.parAnnee || {}),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
@@ -162,11 +234,11 @@ const Dashboard = () => {
 
   // Données pour le graphique des projets par statut
   const projetsParStatutData = {
-    labels: Object.keys(stats.projets.parStatut),
+    labels: Object.keys(stats?.projets?.parStatut || {}),
     datasets: [
       {
         label: 'Projets',
-        data: Object.values(stats.projets.parStatut),
+        data: Object.values(stats?.projets?.parStatut || {}),
         backgroundColor: [
           'rgba(255, 99, 132, 0.6)',
           'rgba(54, 162, 235, 0.6)',
@@ -184,13 +256,20 @@ const Dashboard = () => {
     ],
   };
 
-  // Données pour le graphique radar des compétences (simulées)
+  // Données pour le graphique radar des compétences (depuis le backend)
   const competencesData = {
     labels: ['Programmation', 'Mathématiques', 'Communication', 'Travail d\'équipe', 'Résolution de problèmes', 'Gestion de projet'],
     datasets: [
       {
         label: 'Compétences',
-        data: [85, 70, 75, 90, 80, 65],
+        data: [
+          stats?.competences?.programmation || 75,
+          stats?.competences?.mathematiques || 75,
+          stats?.competences?.communication || 75,
+          stats?.competences?.travailEquipe || 75,
+          stats?.competences?.resolutionProblemes || 75,
+          stats?.competences?.gestionProjet || 75
+        ],
         backgroundColor: 'rgba(54, 162, 235, 0.2)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
@@ -217,11 +296,18 @@ const Dashboard = () => {
     },
   };
 
-  // Calculer le nombre de jours jusqu'au prochain examen (simulé)
-  const joursJusquAuProchainExamen = 5;
+  // Récupérer le nombre de jours jusqu'au prochain examen depuis le backend
+  const joursJusquAuProchainExamen = stats?.examens?.joursJusquAuProchainExamen || 0;
 
-  // Calculer le nombre de projets à rendre cette semaine (simulé)
-  const projetsASoumettreCetteSemaine = 2;
+  // Récupérer le nombre de projets à rendre cette semaine depuis le backend
+  const projetsASoumettreCetteSemaine = stats?.projets?.aSoumettreCetteSemaine || 0;
+
+  // Fonction pour gérer la déconnexion
+  const handleLogout = () => {
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userData');
+    navigate('/accueil');
+  };
 
   return (
     <div className="dashboard-container">
@@ -229,19 +315,29 @@ const Dashboard = () => {
         <h1>Tableau de bord</h1>
         {userData && (
           <div className="user-info">
-            <p>Bienvenue, {userData.prenom} {userData.nom}</p>
-            <p className="user-details">
-              <span className="filiere">{userData.filiere?.toUpperCase()}</span>
-              <span className="annee">{userData.annee}ème année</span>
-            </p>
+            <div className="user-details-container">
+              <p>Bienvenue, {userData.prenom} {userData.nom}</p>
+              <p className="user-details">
+                <span className="filiere">{userData.filiere?.toUpperCase()}</span>
+                <span className="annee">{userData.annee}ème année</span>
+              </p>
+            </div>
+            <button onClick={handleLogout} className="logout-btn">
+              <FontAwesomeIcon icon={faSignOutAlt} /> Déconnexion
+            </button>
           </div>
         )}
       </div>
 
       {loading ? (
-        <div className="loading">Chargement des données...</div>
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          Chargement des données...
+        </div>
       ) : error ? (
-        <div className="error">{error}</div>
+        <div className="error">
+          <i className="fas fa-exclamation-circle"></i> {error}
+        </div>
       ) : (
         <div className="dashboard-content">
           {/* Cartes d'informations */}
@@ -252,7 +348,7 @@ const Dashboard = () => {
               </div>
               <div className="card-content">
                 <h3>Étudiants</h3>
-                <p className="card-value">{stats.etudiants.total}</p>
+                <p className="card-value">{stats?.etudiants?.total || 0}</p>
                 <p className="card-description">Nombre total d'étudiants</p>
               </div>
             </div>
@@ -263,7 +359,7 @@ const Dashboard = () => {
               </div>
               <div className="card-content">
                 <h3>Emplois du temps</h3>
-                <p className="card-value">{stats.emplois.personnalises}</p>
+                <p className="card-value">{stats?.emplois?.personnalises || 0}</p>
                 <p className="card-description">Emplois personnalisés</p>
               </div>
             </div>
@@ -274,7 +370,7 @@ const Dashboard = () => {
               </div>
               <div className="card-content">
                 <h3>Projets</h3>
-                <p className="card-value">{stats.projets.total}</p>
+                <p className="card-value">{stats?.projets?.total || 0}</p>
                 <p className="card-description">Projets en cours</p>
               </div>
             </div>
@@ -285,8 +381,19 @@ const Dashboard = () => {
               </div>
               <div className="card-content">
                 <h3>Examens</h3>
-                <p className="card-value">{stats.examens.prochains}</p>
+                <p className="card-value">{stats?.examens?.prochains || 0}</p>
                 <p className="card-description">Examens à venir</p>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-icon event-icon">
+                <i className="fas fa-calendar-day"></i>
+              </div>
+              <div className="card-content">
+                <h3>Événements</h3>
+                <p className="card-value">{stats?.evenements?.aVenir || 0}</p>
+                <p className="card-description">Événements à venir</p>
               </div>
             </div>
           </div>
@@ -303,8 +410,21 @@ const Dashboard = () => {
               )}
               {projetsASoumettreCetteSemaine > 0 && (
                 <div className="alert project-alert">
-                  <i className="fas fa-exclamation-circle"></i>
+                  <i className="fas fa-exclamation-triangle"></i>
                   <p>{projetsASoumettreCetteSemaine} projet{projetsASoumettreCetteSemaine > 1 ? 's' : ''} à soumettre cette semaine</p>
+                </div>
+              )}
+              <div className="alert info-alert">
+                <i className="fas fa-info-circle"></i>
+                <p>Consultez régulièrement votre emploi du temps pour les mises à jour</p>
+              </div>
+
+              {stats?.evenements?.prochain && (
+                <div className="alert event-alert">
+                  <i className="fas fa-calendar-day"></i>
+                  <p>
+                    Prochain événement : {stats.evenements.prochain.titre || 'Événement'} - {stats.evenements.prochain.dateDebut ? new Date(stats.evenements.prochain.dateDebut).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Date à venir'}
+                  </p>
                 </div>
               )}
             </div>
@@ -349,33 +469,73 @@ const Dashboard = () => {
           <div className="recent-activities">
             <h2>Activités récentes</h2>
             <div className="activity-list">
-              <div className="activity-item">
-                <div className="activity-icon">
-                  <i className="fas fa-calendar-plus"></i>
-                </div>
-                <div className="activity-content">
-                  <p className="activity-title">Nouvel emploi du temps personnalisé</p>
-                  <p className="activity-time">Il y a 2 jours</p>
-                </div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-icon">
-                  <i className="fas fa-tasks"></i>
-                </div>
-                <div className="activity-content">
-                  <p className="activity-title">Nouveau projet ajouté: Développement Web</p>
-                  <p className="activity-time">Il y a 3 jours</p>
-                </div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-icon">
-                  <i className="fas fa-file-alt"></i>
-                </div>
-                <div className="activity-content">
-                  <p className="activity-title">Planning des examens mis à jour</p>
-                  <p className="activity-time">Il y a 5 jours</p>
-                </div>
-              </div>
+              {stats?.activitesRecentes && stats.activitesRecentes.length > 0 ? (
+                stats.activitesRecentes.map((activite, index) => {
+                  // Déterminer la classe CSS en fonction du type d'activité
+                  let iconClass = 'activity-calendar';
+                  let iconName = 'fa-calendar-plus';
+
+                  switch (activite.type) {
+                    case 'emploi':
+                      iconClass = 'activity-calendar';
+                      iconName = 'fa-calendar-plus';
+                      break;
+                    case 'projet':
+                      iconClass = 'activity-task';
+                      iconName = 'fa-tasks';
+                      break;
+                    case 'examen':
+                      iconClass = 'activity-exam';
+                      iconName = 'fa-file-alt';
+                      break;
+                    case 'formation':
+                      iconClass = 'activity-calendar';
+                      iconName = 'fa-graduation-cap';
+                      break;
+                    case 'evenement':
+                      iconClass = 'activity-event';
+                      iconName = 'fa-calendar-day';
+                      break;
+                    default:
+                      iconClass = 'activity-calendar';
+                      iconName = 'fa-info-circle';
+                  }
+
+                  // Formater la date
+                  const dateFormatee = activite.date
+                    ? formatTimeAgo(new Date(activite.date))
+                    : 'Date inconnue';
+
+                  return (
+                    <div className="activity-item" key={index}>
+                      <div className={`activity-icon ${iconClass}`}>
+                        <i className={`fas ${iconName}`}></i>
+                      </div>
+                      <div className="activity-content">
+                        <p className="activity-title">{activite.titre}</p>
+                        <p className="activity-time">{dateFormatee}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                // Afficher l'événement prochain s'il existe et qu'il n'y a pas d'activités récentes
+                stats?.evenements?.prochain ? (
+                  <div className="activity-item">
+                    <div className="activity-icon activity-event">
+                      <i className="fas fa-calendar-day"></i>
+                    </div>
+                    <div className="activity-content">
+                      <p className="activity-title">Nouvel événement ajouté: {stats.evenements.prochain.titre || 'Événement'}</p>
+                      <p className="activity-time">Date: {stats.evenements.prochain.dateDebut ? new Date(stats.evenements.prochain.dateDebut).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : 'Date à venir'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="no-activities">
+                    <p>Aucune activité récente</p>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>

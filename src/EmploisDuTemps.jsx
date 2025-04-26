@@ -9,6 +9,9 @@ const EmploisDuTemps = () => {
   const [emploiDuTemps, setEmploiDuTemps] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [semaines, setSemaines] = useState([]);
+  const [selectedSemaine, setSelectedSemaine] = useState(null);
+  const [loadingSemaines, setLoadingSemaines] = useState(false);
   const navigate = useNavigate();
 
   // Récupérer les informations de l'étudiant connecté
@@ -19,19 +22,78 @@ const EmploisDuTemps = () => {
       setMajor(userData.filiere);
       setYear(userData.annee);
       setSubmitted(true);
-      // Utiliser l'apogée de l'étudiant connecté
-      fetchEmploiDuTemps(userData.filiere, userData.annee, userData.apogee);
+
+      // Récupérer les semaines disponibles
+      fetchSemainesDisponibles(userData.filiere, userData.annee);
     }
   }, []);
 
-  const fetchEmploiDuTemps = async (filiere, annee, apogee) => {
+  // Fonction pour récupérer les semaines disponibles
+  const fetchSemainesDisponibles = async (filiere, annee) => {
+    try {
+      setLoadingSemaines(true);
+
+      const token = localStorage.getItem('userToken');
+      const url = `http://localhost:5000/api/emplois-du-temps/${filiere}/${annee}/semaines`;
+
+      console.log('Récupération des semaines disponibles:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Erreur de connexion au serveur' }));
+        console.error('Erreur lors de la récupération des semaines:', errorData);
+        throw new Error(errorData.message || 'Erreur lors de la récupération des semaines disponibles');
+      }
+
+      const data = await response.json();
+      console.log('Semaines disponibles:', data);
+
+      setSemaines(data);
+
+      // Si des semaines sont disponibles, sélectionner la première et charger l'emploi du temps
+      if (data && data.length > 0) {
+        setSelectedSemaine(data[0]);
+
+        // Récupérer l'emploi du temps pour la première semaine
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        fetchEmploiDuTemps(filiere, annee, userData.apogee, data[0]);
+      } else {
+        // Si aucune semaine n'est disponible, récupérer l'emploi du temps sans spécifier de semaine
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        fetchEmploiDuTemps(filiere, annee, userData.apogee);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des semaines:', error);
+    } finally {
+      setLoadingSemaines(false);
+    }
+  };
+
+  const fetchEmploiDuTemps = async (filiere, annee, apogee, semaine = null) => {
     try {
       setLoading(true);
       setError('');
 
       const token = localStorage.getItem('userToken');
-      // Modification de l'URL pour correspondre à votre backend
-      const url = `http://localhost:5000/api/emplois-du-temps/${filiere}/${annee}`;
+      // Construire l'URL de base
+      let url = `http://localhost:5000/api/emplois-du-temps/${filiere}/${annee}`;
+
+      // Ajouter les paramètres de requête (apogée et semaine)
+      const params = new URLSearchParams();
+      if (apogee) params.append('apogee', apogee);
+      if (semaine) params.append('semaine', semaine);
+
+      // Ajouter les paramètres à l'URL si nécessaire
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
 
       console.log('URL de la requête:', url);
       console.log('Token:', token);
@@ -99,13 +161,68 @@ const EmploisDuTemps = () => {
       setSubmitted(true);
       const userData = JSON.parse(localStorage.getItem('userData'));
       console.log('Soumission avec données:', { major, year, apogee: userData.apogee });
-      fetchEmploiDuTemps(major, year, userData.apogee);
+
+      // Récupérer les semaines disponibles d'abord
+      fetchSemainesDisponibles(major, year);
     }
+  };
+
+  // Fonction pour gérer le changement de semaine
+  const handleSemaineChange = (e) => {
+    const semaine = parseInt(e.target.value);
+    setSelectedSemaine(semaine);
+
+    // Récupérer l'emploi du temps pour la semaine sélectionnée
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    fetchEmploiDuTemps(major, year, userData.apogee, semaine);
   };
 
   // Fonction pour formater l'heure
   const formatTime = (time) => {
     return time.substring(0, 5); // Format HH:MM
+  };
+
+  // Fonction pour calculer les dates de début et de fin d'une semaine
+  const getWeekDates = (weekNumber) => {
+    if (!weekNumber) return { debut: null, fin: null };
+
+    const currentYear = new Date().getFullYear();
+
+    // Trouver le premier jour de l'année
+    const firstDayOfYear = new Date(currentYear, 0, 1);
+
+    // Calculer le jour de la semaine du premier jour de l'année (0 = dimanche, 1 = lundi, etc.)
+    const firstDayOfWeek = firstDayOfYear.getDay();
+
+    // Calculer le nombre de jours à ajouter pour atteindre le premier lundi de l'année
+    // Si le premier jour est un lundi (1), on ajoute 0 jour
+    // Si c'est un dimanche (0), on ajoute 1 jour, etc.
+    const daysToFirstMonday = (8 - firstDayOfWeek) % 7;
+
+    // Calculer la date du premier lundi de l'année
+    const firstMonday = new Date(currentYear, 0, 1 + daysToFirstMonday);
+
+    // Calculer la date du lundi de la semaine demandée
+    // On ajoute (weekNumber - 1) * 7 jours au premier lundi de l'année
+    const mondayOfWeek = new Date(firstMonday);
+    mondayOfWeek.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
+
+    // Calculer la date du vendredi de la semaine demandée (lundi + 4 jours)
+    const fridayOfWeek = new Date(mondayOfWeek);
+    fridayOfWeek.setDate(mondayOfWeek.getDate() + 4);
+
+    // Formater les dates
+    const formatDate = (date) => {
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long'
+      });
+    };
+
+    return {
+      debut: formatDate(mondayOfWeek),
+      fin: formatDate(fridayOfWeek)
+    };
   };
 
   // Fonction pour retourner à la page d'accueil de l'application
@@ -126,7 +243,7 @@ const EmploisDuTemps = () => {
         <h2>Emplois du temps</h2>
         <div className="buttons-container">
           {submitted && (
-            <button className="refresh-btn" onClick={() => fetchEmploiDuTemps(major, year, JSON.parse(localStorage.getItem('userData')).apogee)}>
+            <button className="refresh-btn" onClick={() => fetchSemainesDisponibles(major, year)}>
               ⟳ Rafraîchir
             </button>
           )}
@@ -140,6 +257,35 @@ const EmploisDuTemps = () => {
       </div>
 
       <p>Consultez votre emploi du temps hebdomadaire.</p>
+
+      {/* Sélecteur de semaine avec dates */}
+      {submitted && semaines.length > 0 && (
+        <div className="semaine-selector">
+          <div className="semaine-label">
+            <label htmlFor="semaine">Semaine :</label>
+            {selectedSemaine && (
+              <div className="semaine-dates">
+                {getWeekDates(selectedSemaine).debut} - {getWeekDates(selectedSemaine).fin}
+              </div>
+            )}
+          </div>
+          <select
+            id="semaine"
+            value={selectedSemaine || ''}
+            onChange={handleSemaineChange}
+            className="semaine-select"
+          >
+            {semaines.map((semaine) => {
+              const dates = getWeekDates(semaine);
+              return (
+                <option key={semaine} value={semaine}>
+                  Semaine {semaine} ({dates.debut} - {dates.fin})
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
 
       <div className="info-message">
         <p>
@@ -199,6 +345,19 @@ const EmploisDuTemps = () => {
                   </p>
                 </div>
               )}
+
+              {/* Titre avec la semaine actuelle */}
+              {selectedSemaine && (
+                <div className="current-week-title">
+                  <h3>
+                    Emploi du temps : Semaine {selectedSemaine}
+                    <span className="week-dates">
+                      Du {getWeekDates(selectedSemaine).debut} au {getWeekDates(selectedSemaine).fin}
+                    </span>
+                  </h3>
+                </div>
+              )}
+
               <div className="emplois-grid">
               {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map((jour) => {
                 const jourEmploi = emploiDuTemps.emplois.find(e => e.jour === jour);

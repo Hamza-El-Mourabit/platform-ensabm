@@ -7,6 +7,7 @@ import EmploisDuTemps from "./EmploisDuTemps";
 import PlanningExams from "./PlanningExams";
 import Evenement from "./Evenement";
 import EmploisPersonnalises from "./EmploisPersonnalises";
+import FormationsInscrites from "./FormationsInscrites";
 import ProjetsDeadlines from "./ProjetsDeadlines";
 import Accueil from "./loginaccueil/components/accueil";
 import AdminLogin from "./AdminLogin";
@@ -137,6 +138,19 @@ function App() {
                 <Header />
                 <Sidebar openSidebarToggle={openSidebarToggle} OpenSidebar={OpenSidebar} />
                 <EmploisPersonnalises />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/FormationsInscrites"
+          element={
+            <ProtectedRoute>
+              <div className="grid-container">
+                <Header />
+                <Sidebar openSidebarToggle={openSidebarToggle} OpenSidebar={OpenSidebar} />
+                <FormationsInscrites />
               </div>
             </ProtectedRoute>
           }

@@ -1,15 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 const {
-  getEvenements,
-  updateEvenements,
-  deleteEvenements
+  getAllEvenements,
+  getEvenementsByFiliereAnnee,
+  getEvenementById,
+  createEvenement,
+  updateEvenement,
+  deleteEvenement
 } = require('../controllers/evenementController');
 
-// Routes protégées par authentification
-router.get('/:filiere/:annee', protect, getEvenements);
-router.put('/:filiere/:annee', protect, updateEvenements);
-router.delete('/:filiere/:annee', protect, deleteEvenements);
+// Route pour récupérer tous les événements (pour l'admin)
+router.get('/all', protect, admin, getAllEvenements);
 
-module.exports = router; 
+// Routes pour les étudiants et les admins
+router.get('/:filiere/:annee', protect, getEvenementsByFiliereAnnee);
+router.get('/:id', protect, getEvenementById);
+
+// Routes protégées pour les admins uniquement
+router.post('/', protect, admin, createEvenement);
+router.put('/:id', protect, admin, updateEvenement);
+router.delete('/:id', protect, admin, deleteEvenement);
+
+module.exports = router;

@@ -12,6 +12,14 @@ const planningExamsSchema = new mongoose.Schema({
     enum: ['1', '2', '3']
   },
   examens: [{
+    examId: {
+      type: String,
+      required: false // Pas requis pour la compatibilité avec les anciens examens
+    },
+    titre: {
+      type: String,
+      required: false // Pas requis pour la compatibilité avec les anciens examens
+    },
     module: {
       type: String,
       required: true
@@ -35,10 +43,18 @@ const planningExamsSchema = new mongoose.Schema({
     professeur: {
       type: String,
       required: true
+    },
+    pourEtudiantsSpecifiques: {
+      type: Boolean,
+      default: false
+    },
+    etudiants: {
+      type: [String],
+      default: []
     }
   }]
 }, {
   timestamps: true
 });
 
-module.exports = mongoose.model('PlanningExams', planningExamsSchema); 
+module.exports = mongoose.model('PlanningExams', planningExamsSchema);

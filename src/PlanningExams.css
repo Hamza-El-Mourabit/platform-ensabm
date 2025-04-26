@@ -1,140 +1,440 @@
 .page-container {
-    padding: 2rem;
-    font-family: Arial, sans-serif;
-    background-color: #f7f9fc;
-    min-height: 100vh;
-  }
-  
-  h1 {
-    margin-bottom: 0.5rem;
-    color: #1e293b;
-  }
-  
-  .header-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-  }
-  
-  .buttons-container {
-    display: flex;
-    gap: 1rem;
-  }
-  
-  .return-btn, .logout-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-  }
-  
-  .return-btn {
-    background-color: #e2e8f0;
-    color: #1e293b;
-  }
-  
-  .return-btn:hover {
-    background-color: #cbd5e1;
-  }
-  
-  .logout-btn {
-    background-color: #ef4444;
-    color: white;
-  }
-  
-  .logout-btn:hover {
-    background-color: #dc2626;
-  }
-  
-  .planning-form {
-    max-width: 400px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-  
-  .form-group {
-    margin-bottom: 1rem;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #1e293b;
-    font-weight: 500;
-  }
-  
-  .form-group select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    background-color: white;
-  }
-  
-  .submit-btn {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-  }
-  
-  .submit-btn:hover {
-    background-color: #2563eb;
-  }
-  
-  .exam-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 2rem;
-    background-color: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-  
-  .exam-table th,
-  .exam-table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .exam-table th {
-    background-color: #f1f5f9;
-    color: #334155;
-    font-weight: 500;
-  }
-  
-  .exam-table tr:hover {
-    background-color: #f8fafc;
-  }
-  
-  .error-message {
-    padding: 1rem;
-    background-color: #fee2e2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
-    color: #991b1b;
-    margin-top: 1rem;
-  }
-  
-  .error-message ul {
-    margin-top: 0.5rem;
-    padding-left: 1.5rem;
-  }
-  
-  .error-message li {
-    margin-bottom: 0.25rem;
-  }
-  
+  padding: 1.5rem;
+  font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f4f8;
+  min-height: 100vh;
+  color: #2d3748;
+}
+
+h1 {
+  margin-bottom: 0.5rem;
+  color: #2c5282;
+  font-weight: 700;
+  font-size: 1.8rem;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.buttons-container {
+  display: flex;
+  gap: 1rem;
+}
+
+.return-btn, .logout-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.return-btn {
+  background-color: #e2e8f0;
+  color: #2d3748;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.return-btn:hover {
+  background-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.logout-btn {
+  background-color: #fc8181;
+  color: white;
+  box-shadow: 0 2px 4px rgba(252, 129, 129, 0.3);
+}
+
+.logout-btn:hover {
+  background-color: #f56565;
+  transform: translateY(-2px);
+}
+
+.welcome-message {
+  background: linear-gradient(135deg, #4299e1, #667eea);
+  color: white;
+  padding: 1.2rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(66, 153, 225, 0.2);
+}
+
+.welcome-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-message h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0;
+  margin-right: 1rem;
+}
+
+.welcome-message p {
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.refresh-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.planning-form {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  color: #2d3748;
+}
+
+.form-group select:focus {
+  border-color: #4299e1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background: linear-gradient(135deg, #4299e1, #667eea);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(66, 153, 225, 0.2);
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(66, 153, 225, 0.25);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+.planning-result {
+  margin-top: 2rem;
+}
+
+.exams-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.date-group {
+  margin-bottom: 1.5rem;
+}
+
+.date-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.date-header h3 {
+  font-size: 1.1rem;
+  color: #2c5282;
+  font-weight: 600;
+  margin-right: 0.8rem;
+}
+
+.date-badge {
+  background-color: #ebf4ff;
+  color: #3182ce;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.exam-card {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.exam-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.exam-card-header {
+  padding: 0.8rem;
+  background: linear-gradient(135deg, #4299e1, #667eea);
+  color: white;
+}
+
+.exam-card-header h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.specific-exam-badge {
+  display: inline-block;
+  background-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.4rem;
+}
+
+.exam-module {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+
+.exam-card-body {
+  padding: 0.8rem;
+}
+
+.exam-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.remaining-time {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #e2e8f0;
+  color: #4a5568;
+}
+
+.remaining-time strong {
+  color: #2c5282;
+  font-weight: 600;
+}
+
+.exam-info:last-child {
+  margin-bottom: 0;
+}
+
+.exam-info i {
+  width: 20px;
+  margin-right: 0.8rem;
+  color: #4299e1;
+}
+
+.exam-status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-bottom-left-radius: 8px;
+}
+
+.status-upcoming {
+  background-color: #c6f6d5;
+  color: #2f855a;
+}
+
+.status-past {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+.status-today {
+  background-color: #fefcbf;
+  color: #b7791f;
+}
+
+.no-exams {
+  text-align: center;
+  padding: 3rem;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.no-exams i {
+  font-size: 3rem;
+  color: #a0aec0;
+  margin-bottom: 1rem;
+}
+
+.no-exams p {
+  color: #4a5568;
+  font-size: 1.1rem;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(66, 153, 225, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #4299e1;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-right: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  padding: 1.5rem;
+  background-color: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  color: #c53030;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.error-message h3 {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.error-message h3 i {
+  margin-right: 0.5rem;
+}
+
+.error-message ul {
+  margin-top: 0.8rem;
+  padding-left: 1.5rem;
+}
+
+.error-message li {
+  margin-bottom: 0.5rem;
+}
+
+.filters-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+}
+
+.filter-label {
+  margin-right: 0.5rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.filter-select {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: white;
+  color: #2d3748;
+}
+
+.search-container {
+  position: relative;
+  width: 250px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.4rem 0.8rem 0.4rem 2.2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background-color: white;
+  color: #2d3748;
+  font-size: 0.9rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+}
